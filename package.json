@@ -1,0 +1,45 @@
+{
+  "name": "reducerify",
+  "version": "1.0.1 ",
+  "description": "A reducer factory for TypeScript",
+  "author": "Frédéric Mascaro <frédéric.mascaro@gmail.com> (https://github.com/wooandoo)",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wooandoo/reducerify"
+  },
+  "keywords": ["reducer", "typescript", "state-management", "functional", "immutable"],
+  "bugs": {
+    "url": "https://github.com/wooandoo/reducerify/issues"
+  },
+  "homepage": "https://github.com/wooandoo/reducerify#readme",
+  "license": "MIT",
+  "module": "dist/index.js",
+  "type": "module",
+  "files": ["dist"],
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "test": "bun test",
+    "build": "bun build --outfile=dist/index.js src/index.ts && tsc --declaration --emitDeclarationOnly --outDir dist src/index.ts",
+    "lint": "biome check .",
+    "prepare": "bun run build",
+    "example:counter": "bun examples/counter.ts",
+    "example:todos": "bun examples/todos.ts"
+  },
+  "packageManager": "bun@1.2.10",
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "1.9.4",
+    "@types/bun": "latest",
+    "typescript": "^5"
+  }
+}
