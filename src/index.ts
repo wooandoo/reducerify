@@ -84,7 +84,8 @@ export function forState<TState>() {
           );
         }
 
-        return (handler as (state: TState) => TState)(state);
+        // For handlers without payload, we need to ensure proper typing
+        return (handler as (state: TState, action?: any) => TState)(state);
       };
 
       return { reducer, actions };
