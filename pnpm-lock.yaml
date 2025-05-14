@@ -7,13 +7,14 @@ settings:
 importers:
 
   .:
+    dependencies:
+      immer:
+        specifier: ^10.1.1
+        version: 10.1.1
     devDependencies:
       '@biomejs/biome':
         specifier: 1.9.4
         version: 1.9.4
-      immer:
-        specifier: ^10.1.1
-        version: 10.1.1
       tsdown:
         specifier: ^0.11.9
         version: 0.11.9(typescript@5.8.3)
