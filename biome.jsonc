@@ -46,7 +46,8 @@
   "files": {
     "ignore": [
       "tsconfig.*.json",
-      "tsconfig.json"
+      "tsconfig.json",
+      "dist/**"
     ]
   }
 }
