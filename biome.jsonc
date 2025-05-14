@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.0.0/schema.json",
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
   "organizeImports": {
     "enabled": true
   },
@@ -9,6 +9,9 @@
       "recommended": true,
       "correctness": {
         "noUnusedImports": "error"
+      },
+      "suspicious": {
+        "noExplicitAny": "off"
       },
       "a11y": {
         "useKeyWithMouseEvents": "off",
@@ -38,5 +41,11 @@
     "formatter": {
       "enabled": false
     }
+  },
+  // For some reason biome doesn't support comments in tsconfig.json
+  "files": {
+    "ignore": [
+      "tsconfig.*.json"
+    ]
   }
 }
