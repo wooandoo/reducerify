@@ -1,5 +1,15 @@
 // utils/createReducer.ts
 
+import { type Immutable } from 'immer';
+let produce: (reducer: (state: any, action: any) => any) => any;
+try {
+  const immer = await import(/* webpackIgnore: true */ /* @vite-ignore */ 'immer');
+  produce = immer.produce;
+} catch (e) {
+  console.error(e)
+    throw new Error('Immer is not installed. Please install immer to use createImmerReducer.');
+}
+
 export type ActionWithoutPayload = {
   type: string;
 };
@@ -9,11 +19,11 @@ export type ActionWithPayload<TPayload> = {
   payload: TPayload;
 };
 
-type Handler<TState> = (state: TState, action: ActionWithPayload<any>) => TState;
+type ImmerHandler<TState> = (state: TState, action: ActionWithPayload<any>) => void;
 
 // 2. Definition of the handlers map: either a state-only reducer or state+action reducer
-export type ReducerHandlers<TState> = {
-  [TActionType in string]: Handler<TState>;
+export type ImmerReducerHandlers<TState> = {
+  [TActionType in string]: ImmerHandler<TState>;
 };
 
 type ExtractHandlerType<THandler> = THandler extends (state: any) => any
@@ -36,15 +46,15 @@ export type ActionUnion<THandlers extends Record<string, any>, TState> = {
     : ActionWithPayload<ExtractHandlerType<THandlers[TActionKey]>>;
 }[keyof THandlers];
 
-type CreateReducerResult<THandlers extends ReducerHandlers<TState>, TState> = {
-  reducer: (state: TState, action: ActionUnion<THandlers, TState>) => TState;
+type CreateImmerReducerResult<THandlers extends ImmerReducerHandlers<TState>, TState> = {
+  reducer: (state: Immutable<TState>, action: ActionUnion<THandlers, TState>) => TState;
   actions: ActionCreatorMap<THandlers, TState>;
 };
 
 // 5. Implementation of createReducer that infers everything
 export function forState<TState>() {
   return {
-    createReducer: <THandlers extends ReducerHandlers<TState>>(handlers: THandlers): CreateReducerResult<THandlers, TState> => {
+    createImmerReducer: <THandlers extends ImmerReducerHandlers<TState>>(handlers: THandlers): CreateImmerReducerResult<THandlers, TState> => {
       const actions = {} as ActionCreatorMap<THandlers, TState>;
 
       // Generate action creators based on handlerFunction.length
@@ -83,7 +93,7 @@ export function forState<TState>() {
         return (handler as (state: TState, action?: any) => TState)(state);
       };
 
-      return { reducer, actions };
+      return { reducer: produce(reducer), actions };
     },
   };
 }
