@@ -45,7 +45,8 @@
   // For some reason biome doesn't support comments in tsconfig.json
   "files": {
     "ignore": [
-      "tsconfig.*.json"
+      "tsconfig.*.json",
+      "tsconfig.json"
     ]
   }
 }
