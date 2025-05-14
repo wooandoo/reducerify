@@ -6,12 +6,18 @@ type CounterState = { count: number };
 type TodoState = { todos: Todo[]; new_todo: Todo };
 type Todo = { name: string; is_closed: boolean };
 
-describe('createReducer', () => {
+describe('createImmerReducer', () => {
   test('should create a reducer and action creators', () => {
-    const { reducer, actions } = forState<CounterState>().createReducer({
-      increment: (state) => ({ count: state.count + 1 }),
-      decrement: (state) => ({ count: state.count - 1 }),
-      add: (state, action: ActionWithPayload<number>) => ({ count: state.count + action.payload }),
+    const { reducer, actions } = forState<CounterState>().createImmerReducer({
+      increment: (state) => {
+        state.count += 1;
+      },
+      decrement: (state) => {
+        state.count -= 1;
+      },
+      add: (state, action: ActionWithPayload<number>) => {
+        state.count += action.payload;
+      },
     });
 
     // Check that the reducer and actions exist
@@ -24,9 +30,13 @@ describe('createReducer', () => {
   });
 
   test('should handle actions without payload', () => {
-    const { reducer, actions } = forState<CounterState>().createReducer({
-      increment: (state) => ({ count: state.count + 1 }),
-      decrement: (state) => ({ count: state.count - 1 }),
+    const { reducer, actions } = forState<CounterState>().createImmerReducer({
+      increment: (state) => {
+        state.count += 1;
+      },
+      decrement: (state) => {
+        state.count -= 1;
+      },
     });
 
     // Initial state
@@ -48,9 +58,13 @@ describe('createReducer', () => {
   });
 
   test('should handle actions with payload', () => {
-    const { reducer, actions } = forState<CounterState>().createReducer({
-      add: (state, action: ActionWithPayload<number>) => ({ count: state.count + action.payload }),
-      set: (state, action: ActionWithPayload<number>) => ({ count: action.payload }),
+    const { reducer, actions } = forState<CounterState>().createImmerReducer({
+      add: (state, action: ActionWithPayload<number>) => {
+        state.count = state.count + action.payload;
+      },
+      set: (state, action: ActionWithPayload<number>) => {
+        state.count = action.payload;
+      },
     });
 
     // Initial state
@@ -72,8 +86,10 @@ describe('createReducer', () => {
   });
 
   test('should ignore unknown action types', () => {
-    const { reducer } = forState<CounterState>().createReducer({
-      increment: (state) => ({ count: state.count + 1 }),
+    const { reducer } = forState<CounterState>().createImmerReducer({
+      increment: (state) => {
+        state.count += 1;
+      },
     });
 
     // Initial state
@@ -88,29 +104,25 @@ describe('createReducer', () => {
   });
 
   test('should handle complex state and actions', () => {
-    const { reducer, actions } = forState<TodoState>().createReducer({
-      update_name: (state, action: ActionWithPayload<{ name: string }>) => ({
-        todos: state.todos,
-        new_todo: {
+    const { reducer, actions } = forState<TodoState>().createImmerReducer({
+      update_name: (state, action: ActionWithPayload<{ name: string }>) => {
+        state.new_todo = {
           ...state.new_todo,
           name: action.payload.name,
-        },
-      }),
-      save: (state) => ({
-        todos: [...state.todos, state.new_todo],
-        new_todo: { name: '', is_closed: false },
-      }),
-      close: (state, action: ActionWithPayload<{ todo_index: number }>) => ({
-        todos: [
-          ...state.todos.slice(0, action.payload.todo_index),
-          {
-            ...state.todos[action.payload.todo_index],
-            is_closed: true,
-          } as Todo,
-          ...state.todos.slice(action.payload.todo_index + 1),
-        ],
-        new_todo: state.new_todo,
-      }),
+        };
+      },
+      save: (state) => {
+        state.todos.push(state.new_todo);
+        state.new_todo = { name: '', is_closed: false };
+      },
+      close: (state, action: ActionWithPayload<{ todo_index: number }>) => {
+        state.todos = state.todos.map((todo, index) => {
+          if (index === action.payload.todo_index) {
+            return { ...todo, is_closed: true };
+          }
+          return todo;
+        });
+      },
     });
 
     // Initial state
