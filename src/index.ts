@@ -9,7 +9,7 @@ export type ActionWithPayload<TPayload> = {
   payload: TPayload;
 };
 
-type Handler<TState> = ((state: TState, action: ActionWithPayload<any>) => TState) 
+type Handler<TState> = (state: TState, action: ActionWithPayload<any>) => TState;
 
 // 2. Definition of the handlers map: either a state-only reducer or state+action reducer
 export type ReducerHandlers<TState> = {
@@ -26,9 +26,7 @@ type ExtractHandlerType<THandler> = THandler extends (state: any) => any
 export type ActionCreatorMap<THandlers extends Record<string, any>, TState> = {
   [TActionKey in keyof THandlers]: ExtractHandlerType<THandlers[TActionKey]> extends 'no-payload'
     ? () => ActionWithoutPayload
-    : (
-        payload: ExtractHandlerType<THandlers[TActionKey]>
-      ) => ActionWithPayload<ExtractHandlerType<THandlers[TActionKey]>>;
+    : (payload: ExtractHandlerType<THandlers[TActionKey]>) => ActionWithPayload<ExtractHandlerType<THandlers[TActionKey]>>;
 };
 
 // 4. Union type of all possible action objects, with correct payload typings
@@ -78,10 +76,7 @@ export function forState<TState>() {
 
         // If handler expects an action param
         if (handler.length > 1) {
-          return (handler as (state: TState, action: ActionWithPayload<any>) => TState)(
-            state,
-            action as ActionWithPayload<any>
-          );
+          return (handler as (state: TState, action: ActionWithPayload<any>) => TState)(state, action as ActionWithPayload<any>);
         }
 
         // For handlers without payload, we need to ensure proper typing

@@ -1,4 +1,4 @@
-import { forState, type ActionWithPayload } from "../src/index";
+import { forState, type ActionWithPayload } from '../dist/index.js';
 
 type TodoState = { todos: Todo[]; new_todo: Todo };
 type Todo = { name: string; is_closed: boolean };
