@@ -11,6 +11,9 @@ importers:
       '@biomejs/biome':
         specifier: 1.9.4
         version: 1.9.4
+      immer:
+        specifier: ^10.1.1
+        version: 10.1.1
       tsdown:
         specifier: ^0.11.9
         version: 0.11.9(typescript@5.8.3)
@@ -576,6 +579,9 @@ packages:
 
   hookable@5.5.3:
     resolution: {integrity: sha512-Yc+BQe8SvoXH1643Qez1zqLRmbA5rCL+sSmk6TVos0LWVfNIB7PGncdlId77WzLGSIB5KaWgTaNTs2lNVEI6VQ==}
+
+  immer@10.1.1:
+    resolution: {integrity: sha512-s2MPrmjovJcoMaHtx6K11Ra7oD05NT97w1IC5zpMkT6Atjr7H8LjaDd81iIxUYpMKSRRNMJE703M1Fhr/TctHw==}
 
   jiti@2.4.2:
     resolution: {integrity: sha512-rg9zJN+G4n2nfJl5MW3BMygZX56zKPNVEYYqq7adpmMh4Jn2QNEwhvQlFy6jPVdcod7txZtKHWnyZiA3a0zP7A==}
@@ -1219,6 +1225,8 @@ snapshots:
       resolve-pkg-maps: 1.0.0
 
   hookable@5.5.3: {}
+
+  immer@10.1.1: {}
 
   jiti@2.4.2: {}
 
