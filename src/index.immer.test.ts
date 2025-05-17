@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest';
-import { type ActionWithPayload, forState } from './immer.js';
+import { forState } from './immer';
+import type { ActionWithPayload } from './types';
 
 // Define test types
 type CounterState = { count: number };

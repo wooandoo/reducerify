@@ -1,4 +1,4 @@
-import { type ActionWithPayload, forState } from '../dist/index.js';
+import { type ActionWithPayload, forState } from '../src/index';
 
 type TodoState = { todos: Todo[]; new_todo: Todo };
 type Todo = { name: string; is_closed: boolean };
@@ -33,6 +33,9 @@ const { reducer: todo_reducer, actions: todo_actions } = forState<TodoState>().c
     };
   },
 });
+
+console.log('=== --------------------------------------------');
+console.log('=== TODOS EXAMPLE');
 
 let state: TodoState = { todos: [], new_todo: { name: '', is_closed: false } };
 console.log('-----------------');

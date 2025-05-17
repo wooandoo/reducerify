@@ -26,7 +26,7 @@ npm install reducerify
 yarn add reducerify
 ```
 
-## Quick Start
+## Quick Start pure functional way
 
 ### 1. Define your state type
 
@@ -94,6 +94,47 @@ let state: TodoState = {
 state = reducer(state, actions.updateName({ name: 'Learn Reducerify' }));
 state = reducer(state, actions.save());
 state = reducer(state, actions.close({ todoIndex: 0 }));
+```
+
+## Quick Start immer way
+
+The API to use immer is the same as the pure functional way, but you need to import `forState` from `reducerify/immer`.
+
+```ts
+import { forState } from "./immer";
+
+const { reducer, actions } = forState<TodoState>().createReducer({
+  // Action with payload
+  updateName: (state, action: ActionWithPayload<{ name: string }>) => {
+    return {
+      ...state,
+      newTodo: {
+        ...state.newTodo,
+        name: action.payload.name,
+      },
+    };
+  },
+
+  // Action without payload
+  save: (state) => {
+    return {
+      todos: [...state.todos, state.newTodo],
+      newTodo: { name: '', isClosed: false },
+    };
+  },
+
+  // Another action with payload
+  close: (state, action: ActionWithPayload<{ todoIndex: number }>) => {
+    return {
+      ...state,
+      todos: state.todos.map((todo, index) =>
+        index === action.payload.todoIndex
+          ? { ...todo, isClosed: true }
+          : todo
+      ),
+    };
+  },
+});
 ```
 
 ## API Reference

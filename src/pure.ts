@@ -1,35 +1,23 @@
 // utils/createReducer.ts
 
-import type { Immutable } from 'immer';
 import type { ActionCreatorMap, ActionUnion, ActionWithPayload } from './types';
 
-// immer is an optional dependency, so we need to lazy-load it
-let produce: (reducer: (state: any, action: any) => any) => any;
+type Handler<TState> = (state: TState, action: ActionWithPayload<any>) => TState;
 
-try {
-  const immer = await import(/* webpackIgnore: true */ /* @vite-ignore */ 'immer');
-  produce = immer.produce;
-} catch (e) {
-  console.error(e);
-  throw new Error('Immer is not installed. Please install immer to use createImmerReducer.');
-}
-
-type ImmerHandler<TState> = (state: TState, action: ActionWithPayload<any>) => void;
-
-// 2. Definition of the handlers map: either a state-only reducer or state+action reducer
-export type ImmerReducerHandlers<TState> = {
-  [TActionType in string]: ImmerHandler<TState>;
+// Definition of the handlers map: either a state-only reducer or state+action reducer
+export type ReducerHandlers<TState> = {
+  [TActionType in string]: Handler<TState>;
 };
 
-type CreateImmerReducerResult<THandlers extends ImmerReducerHandlers<TState>, TState> = {
-  reducer: (state: Immutable<TState>, action: ActionUnion<THandlers, TState>) => TState;
+type CreateReducerResult<THandlers extends ReducerHandlers<TState>, TState> = {
+  reducer: (state: TState, action: ActionUnion<THandlers, TState>) => TState;
   actions: ActionCreatorMap<THandlers, TState>;
 };
 
 // 5. Implementation of createReducer that infers everything
 export function forState<TState>() {
   return {
-    createImmerReducer: <THandlers extends ImmerReducerHandlers<TState>>(handlers: THandlers): CreateImmerReducerResult<THandlers, TState> => {
+    createReducer: <THandlers extends ReducerHandlers<TState>>(handlers: THandlers): CreateReducerResult<THandlers, TState> => {
       const actions = {} as ActionCreatorMap<THandlers, TState>;
 
       // Generate action creators based on handlerFunction.length
@@ -68,7 +56,7 @@ export function forState<TState>() {
         return (handler as (state: TState, action?: any) => TState)(state);
       };
 
-      return { reducer: produce(reducer), actions };
+      return { reducer, actions };
     },
   };
 }

@@ -1,17 +1,30 @@
-import { type ActionWithPayload, forState } from '../dist/index.js';
+import { type ActionWithPayload, forState } from '../src/index';
+
+type CounterState = { count: number };
 
 const { reducer: counterReducer, actions } = forState<{ count: number }>().createReducer({
   increment: (state) => ({ count: state.count + 1 }),
+
   add: (state, action: ActionWithPayload<number>) => ({ count: state.count + action.payload }),
-  complex_op: (state, action: ActionWithPayload<{ a: number; b: string }>) => state,
+
+  complex_op: (state, action: ActionWithPayload<{ a: number; b: string }>) => ({ count: state.count + action.payload.a + action.payload.b.length }),
 });
 
 export const { increment, add, complex_op } = actions;
 
-// Usage example:
-// - initial state when state is undefined
-// - provide the correct action object
-const nextState = counterReducer({ count: 0 }, add(1));
-console.log(nextState); // { count: 1 }
+console.log('=== --------------------------------------------');
+console.log('=== COUNTER EXAMPLE');
 
-counterReducer({ count: 2 }, add(1));
+let state: CounterState = { count: 0 };
+
+state = counterReducer(state, increment());
+console.log('-----------------');
+console.log(state);
+
+state = counterReducer(state, add(3));
+console.log('-----------------');
+console.log(state);
+
+state = counterReducer(state, complex_op({ a: 3, b: 'hello world' }));
+console.log('-----------------');
+console.log(state);
