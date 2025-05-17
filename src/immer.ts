@@ -1,18 +1,7 @@
 // utils/createReducer.ts
 
-import type { Immutable } from 'immer';
+import { type Immutable, produce } from 'immer';
 import type { ActionCreatorMap, ActionUnion, ActionWithPayload } from './types';
-
-// immer is an optional dependency, so we need to lazy-load it
-let produce: (reducer: (state: any, action: any) => any) => any;
-
-try {
-  const immer = await import(/* webpackIgnore: true */ /* @vite-ignore */ 'immer');
-  produce = immer.produce;
-} catch (e) {
-  console.error(e);
-  throw new Error('Immer is not installed. Please install immer to use createImmerReducer.');
-}
 
 type ImmerHandler<TState> = (state: TState, action: ActionWithPayload<any>) => void;
 
