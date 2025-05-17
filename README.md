@@ -101,39 +101,27 @@ state = reducer(state, actions.close({ todoIndex: 0 }));
 The API to use immer is the same as the pure functional way, but you need to import `forState` from `reducerify/immer`.
 
 ```ts
-import { forState } from "./immer";
+import { forState } from "reducerify/immer";
 
-const { reducer, actions } = forState<TodoState>().createReducer({
-  // Action with payload
-  updateName: (state, action: ActionWithPayload<{ name: string }>) => {
-    return {
-      ...state,
-      newTodo: {
-        ...state.newTodo,
-        name: action.payload.name,
-      },
-    };
-  },
-
-  // Action without payload
-  save: (state) => {
-    return {
-      todos: [...state.todos, state.newTodo],
-      newTodo: { name: '', isClosed: false },
-    };
-  },
-
-  // Another action with payload
-  close: (state, action: ActionWithPayload<{ todoIndex: number }>) => {
-    return {
-      ...state,
-      todos: state.todos.map((todo, index) =>
-        index === action.payload.todoIndex
-          ? { ...todo, isClosed: true }
-          : todo
-      ),
-    };
-  },
+const { reducer, actions } = forState<TodoState>().createImmerReducer({
+    update_name: (state, action: ActionWithPayload<{ name: string }>) => {
+        state.new_todo = {
+            ...state.new_todo,
+            name: action.payload.name,
+        };
+    },
+    save: (state) => {
+        state.todos.push(state.new_todo);
+        state.new_todo = { name: '', is_closed: false };
+    },
+    close: (state, action: ActionWithPayload<{ todo_index: number }>) => {
+        state.todos = state.todos.map((todo, index) => {
+            if (index === action.payload.todo_index) {
+                return { ...todo, is_closed: true };
+            }
+            return todo;
+        });
+    },
 });
 ```
 
