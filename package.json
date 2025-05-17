@@ -42,7 +42,7 @@
   "scripts": {
     "test": "vitest",
     "clean": "rimraf dist",
-    "build": "rimraf dist && tsdown src/index.ts src/immer.ts",
+    "build": "tsdown src/index.ts src/immer.ts",
     "lint": "biome check .",
     "ci": "pnpm build && pnpm lint && pnpm test",
     "prepare": "pnpm build",
