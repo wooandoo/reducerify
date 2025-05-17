@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    # Required for testing the workflow
+    branches:
+      - main
+      - bum-bun-down
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: pnpm/action-setup@v4
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Run CI
+        run: pnpm run ci

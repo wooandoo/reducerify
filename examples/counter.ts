@@ -1,4 +1,4 @@
-import { forState, type ActionWithPayload } from "../src/index";
+import { type ActionWithPayload, forState } from '../dist/index.js';
 
 const { reducer: counterReducer, actions } = forState<{ count: number }>().createReducer({
   increment: (state) => ({ count: state.count + 1 }),
@@ -15,4 +15,3 @@ const nextState = counterReducer({ count: 0 }, add(1));
 console.log(nextState); // { count: 1 }
 
 counterReducer({ count: 2 }, add(1));
-

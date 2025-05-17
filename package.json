@@ -26,19 +26,22 @@
     }
   },
   "scripts": {
-    "test": "bun test",
-    "build": "bun build --outfile=dist/index.js src/index.ts && tsc --declaration --emitDeclarationOnly --outDir dist src/index.ts",
+    "test": "vitest",
+    "build": "tsdown src/index.ts",
     "lint": "biome check .",
-    "prepare": "bun run build",
-    "example:counter": "bun examples/counter.ts",
-    "example:todos": "bun examples/todos.ts"
+    "ci": "pnpm build && pnpm lint && pnpm test",
+    "prepare": "pnpm build",
+    "example:counter": "node --experimental-strip-types examples/counter.ts",
+    "example:todos": "node --experimental-strip-types examples/todos.ts"
   },
-  "packageManager": "bun@1.2.10",
+  "packageManager": "pnpm@10.0.0",
   "engines": {
     "node": ">=18"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
-    "typescript": "^5"
+    "tsdown": "^0.11.9",
+    "typescript": "^5",
+    "vitest": "^3.1.3"
   }
 }
