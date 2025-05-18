@@ -1,6 +1,6 @@
 {
   "name": "reducerify",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "A reducer factory for TypeScript",
   "author": "Frédéric Mascaro <frédéric.mascaro@gmail.com> (https://github.com/wooandoo)",
   "repository": {
@@ -42,7 +42,7 @@
   "scripts": {
     "test": "vitest",
     "clean": "rimraf dist",
-    "build": "tsdown src/index.ts src/immer.ts",
+    "build": "rimraf dist && tsdown src/index.ts src/immer.ts",
     "lint": "biome check .",
     "ci": "pnpm build && pnpm lint && pnpm test",
     "prepare": "pnpm build",
