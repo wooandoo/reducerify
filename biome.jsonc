@@ -42,11 +42,19 @@
       "enabled": false
     }
   },
-  // For some reason biome doesn't support comments in tsconfig.json
+  "overrides": [
+    {
+      "include": ["tsconfig.json"],
+      "json": {
+        "parser": {
+          "allowComments": true,
+          "allowTrailingCommas": true
+        }
+      }
+    }
+  ],
   "files": {
     "ignore": [
-      "tsconfig.*.json",
-      "tsconfig.json",
       "dist/**"
     ]
   }

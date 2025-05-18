@@ -6,7 +6,6 @@ on:
     # Required for testing the workflow
     branches:
       - main
-      - bum-bun-down
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
