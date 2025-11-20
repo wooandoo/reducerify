@@ -1,7 +1,7 @@
 {
   "name": "reducerify",
-  "version": "1.1.1",
-  "description": "A reducer factory for TypeScript",
+  "version": "1.2.0",
+  "description": "Type-safe reducers and tagged unions for TypeScript - simplify state management with automatic action creators and pattern matching",
   "author": "Frédéric Mascaro <frédéric.mascaro@gmail.com> (https://github.com/wooandoo)",
   "repository": {
     "type": "git",
@@ -13,7 +13,13 @@
     "state-management",
     "functional",
     "immutable",
-    "immer"
+    "immer",
+    "tagged-union",
+    "discriminated-union",
+    "pattern-matching",
+    "zod",
+    "type-safe",
+    "sum-types"
   ],
   "bugs": {
     "url": "https://github.com/wooandoo/reducerify/issues"
@@ -29,20 +35,20 @@
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "require": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
     },
-    "./immer": {
-      "import": "./dist/immer.js",
-      "require": "./dist/immer.js",
-      "types": "./dist/immer.d.ts"
+    "./reducer/immer": {
+      "types": "./dist/reducer/immer.d.ts",
+      "import": "./dist/reducer/immer.js"
     }
   },
   "scripts": {
     "test": "vitest",
     "clean": "rimraf dist",
-    "build": "rimraf dist && tsdown src/index.ts src/immer.ts",
+    "build": "run-s clean build:compile build:xportify",
+    "build:compile": "tsdown src/index.ts src/reducer/immer.ts",
+    "build:xportify": "xportify --project . --dist ./dist --write",
     "lint": "biome check .",
     "ci": "pnpm build && pnpm lint && pnpm test",
     "prepare": "pnpm build",
@@ -63,10 +69,12 @@
     "tsdown": "^0.11.9",
     "tsx": "^4.19.4",
     "typescript": "^5",
-    "vitest": "^3.1.3"
+    "vitest": "^3.1.3",
+    "xportify": "^1.0.7"
   },
   "peerDependencies": {
-    "immer": "^10.1.1"
+    "immer": "^10.1.1",
+    "zod": "^4.1.12"
   },
   "peerDependenciesMeta": {
     "immer": {

@@ -1,5 +1,5 @@
 import type { ActionWithPayload } from '../src';
-import { forState } from '../src/immer';
+import { forState } from '../src/reducer/immer';
 
 type CounterState = { count: number };
 

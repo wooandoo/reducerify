@@ -1,11 +1,17 @@
 import { describe, expect, test } from 'vitest';
-import { forState } from './index';
+import { forState } from './pure';
 import type { ActionWithPayload } from './types';
 
 // Define test types
 type CounterState = { count: number };
 type TodoState = { todos: Todo[]; new_todo: Todo };
 type Todo = { name: string; is_closed: boolean };
+
+// Define test types with union type
+type AuthenticationState = AnonymousState | LoggingInState | LoggedInState;
+type AnonymousState = { status: 'anonymous' };
+type LoggingInState = { status: 'logging_in'; user_id: null };
+type LoggedInState = { status: 'logged_in'; user_id: string };
 
 describe('createReducer', () => {
   test('should create a reducer and action creators', () => {
@@ -164,6 +170,59 @@ describe('createReducer', () => {
         { name: 'Clean house', is_closed: false },
       ],
       new_todo: { name: '', is_closed: false },
+    });
+  });
+
+  test('should return an union type state', () => {
+    const { reducer, actions } = forState<AuthenticationState>().createReducer({
+      login_requested: (state) => {
+        if (state.status !== 'anonymous') {
+          return state;
+        }
+
+        return {
+          status: 'logging_in',
+          user_id: null,
+        };
+      },
+
+      login: (state, action: ActionWithPayload<{ user_id: string }>) => {
+        if (state.status !== 'logging_in') {
+          return state;
+        }
+
+        return {
+          status: 'logged_in',
+          user_id: action.payload.user_id,
+        };
+      },
+
+      logout: (state) => {
+        if (state.status === 'anonymous') {
+          return state;
+        }
+
+        return {
+          status: 'anonymous',
+        };
+      },
+    });
+
+    // Test update_name
+    let state: AuthenticationState = { status: 'anonymous' };
+
+    state = reducer(state, actions.login_requested());
+
+    expect(state).toEqual({
+      status: 'logging_in',
+      user_id: null,
+    });
+
+    state = reducer(state, actions.login({ user_id: '123' }));
+
+    expect(state).toEqual({
+      status: 'logged_in',
+      user_id: '123',
     });
   });
 });
