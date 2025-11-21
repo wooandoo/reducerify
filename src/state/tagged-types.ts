@@ -54,9 +54,49 @@ export type InferTaggedCase<TDefinition> = TDefinition extends z.ZodTypeAny
 export type TaggedEnumDefinition = Record<string, Record<string, z.ZodTypeAny> | z.ZodTypeAny | Record<string, never>>;
 
 /**
+ * Options for customizing tagged enum behavior
+ *
+ * @example
+ * ```ts
+ * const RemoteData = taggedEnum({
+ *   Loading: {},
+ *   Success: { data: z.number() }
+ * }, {
+ *   prefix: 'remote-data',     // _tag: "remote-data/Loading"
+ *   tagKey: 'type',            // Uses "type" instead of "_tag"
+ *   separator: ':'             // _tag: "remote-data:Loading"
+ * });
+ * ```
+ */
+export type TaggedEnumOptions = {
+  /** Prefix added to each tag (e.g., "remote-data" → "remote-data/Loading") */
+  prefix?: string;
+  /** Property name for the discriminant (default: "_tag") */
+  tagKey?: string;
+  /** Separator between prefix and tag name (default: "/") */
+  separator?: string;
+};
+
+/**
+ * Builds the full tag value with optional prefix
+ *
+ * @template TTag - The tag name
+ * @template TPrefix - Optional prefix string
+ * @template TSeparator - Separator between prefix and tag (default: "/")
+ */
+type BuildTagValue<
+  TTag extends string,
+  TPrefix extends string | undefined = undefined,
+  TSeparator extends string = '/',
+> = TPrefix extends string ? `${TPrefix}${TSeparator}${TTag}` : TTag;
+
+/**
  * Infers the union type of all tagged cases from a definition
  *
  * @template TDefinition - The tagged enum definition
+ * @template TTagKey - The property name for the tag (default: "_tag")
+ * @template TPrefix - Optional prefix for tag values
+ * @template TSeparator - Separator between prefix and tag (default: "/")
  *
  * @example
  * ```ts
@@ -67,9 +107,16 @@ export type TaggedEnumDefinition = Record<string, Record<string, z.ZodTypeAny> |
  * // Result: { _tag: "Loading" } | { _tag: "Success", data: string }
  * ```
  */
-export type InferTaggedEnum<TDefinition extends TaggedEnumDefinition> = {
-  [TTag in keyof TDefinition]: { _tag: TTag } & InferTaggedCase<TDefinition[TTag]>;
-}[keyof TDefinition];
+export type InferTaggedEnum<
+  TDefinition extends TaggedEnumDefinition,
+  TTagKey extends string = '_tag',
+  TPrefix extends string | undefined = undefined,
+  TSeparator extends string = '/',
+> = {
+  [TTag in keyof TDefinition & string]: { [K in TTagKey]: BuildTagValue<TTag, TPrefix, TSeparator> } & InferTaggedCase<
+    TDefinition[TTag]
+  >;
+}[keyof TDefinition & string];
 
 /**
  * Maps each tag to its constructor function
@@ -77,6 +124,9 @@ export type InferTaggedEnum<TDefinition extends TaggedEnumDefinition> = {
  * Tags with fields get a unary constructor accepting the payload
  *
  * @template TDefinition - The tagged enum definition
+ * @template TTagKey - The property name for the tag (default: "_tag")
+ * @template TPrefix - Optional prefix for tag values
+ * @template TSeparator - Separator between prefix and tag (default: "/")
  *
  * @example
  * ```ts
@@ -90,10 +140,15 @@ export type InferTaggedEnum<TDefinition extends TaggedEnumDefinition> = {
  * // }
  * ```
  */
-export type Constructors<TDefinition extends TaggedEnumDefinition> = {
-  [TTag in keyof TDefinition]: Record<string, never> extends InferTaggedCase<TDefinition[TTag]>
-    ? () => { _tag: TTag }
-    : (payload: InferTaggedCase<TDefinition[TTag]>) => { _tag: TTag } & InferTaggedCase<TDefinition[TTag]>;
+export type Constructors<
+  TDefinition extends TaggedEnumDefinition,
+  TTagKey extends string = '_tag',
+  TPrefix extends string | undefined = undefined,
+  TSeparator extends string = '/',
+> = {
+  [TTag in keyof TDefinition & string]: Record<string, never> extends InferTaggedCase<TDefinition[TTag]>
+    ? () => { [K in TTagKey]: BuildTagValue<TTag, TPrefix, TSeparator> }
+    : (payload: InferTaggedCase<TDefinition[TTag]>) => { [K in TTagKey]: BuildTagValue<TTag, TPrefix, TSeparator> } & InferTaggedCase<TDefinition[TTag]>;
 };
 
 /**
@@ -150,16 +205,14 @@ export type MatchSomeCases<TDefinition extends TaggedEnumDefinition, TReturnType
 /**
  * Helper type to generate an object with all variants as individual types plus an "All" union type
  *
- * @template TSchema - The Zod discriminated union schema
+ * @template TDefinition - The tagged enum definition
+ * @template TTagKey - The property name for the tag (default: "_tag")
+ * @template TPrefix - Optional prefix for tag values
+ * @template TSeparator - Separator between prefix and tag (default: "/")
  *
  * @example
  * ```ts
- * const schema = z.discriminatedUnion('_tag', [
- *   z.object({ _tag: z.literal('A'), value: z.number() }),
- *   z.object({ _tag: z.literal('B'), text: z.string() })
- * ]);
- *
- * type Types = InferTaggedTypes<typeof schema>;
+ * type Types = InferTaggedTypes<{ A: { value: z.ZodNumber }, B: { text: z.ZodString } }>;
  * // Result: {
  * //   A: { _tag: 'A', value: number },
  * //   B: { _tag: 'B', text: string },
@@ -167,17 +220,26 @@ export type MatchSomeCases<TDefinition extends TaggedEnumDefinition, TReturnType
  * // }
  * ```
  */
-export type InferTaggedTypes<TSchema extends z.ZodDiscriminatedUnion<any, any>> = {
-  [TTag in z.infer<TSchema>['_tag']]: Extract<z.infer<TSchema>, { _tag: TTag }>;
+export type InferTaggedTypes<
+  TDefinition extends TaggedEnumDefinition,
+  TTagKey extends string = '_tag',
+  TPrefix extends string | undefined = undefined,
+  TSeparator extends string = '/',
+> = {
+  [TTag in keyof TDefinition & string]: { [K in TTagKey]: BuildTagValue<TTag, TPrefix, TSeparator> } & InferTaggedCase<
+    TDefinition[TTag]
+  >;
 } & {
-  All: z.infer<TSchema>;
+  All: InferTaggedEnum<TDefinition, TTagKey, TPrefix, TSeparator>;
 };
 
 /**
  * Creates a tagged enum (discriminated union) with type-safe constructors, pattern matching, and runtime validation
  *
  * @template TDefinition - The tagged enum definition
+ * @template TOptions - Optional configuration for tag customization
  * @param definition - Object mapping tag names to their field definitions
+ * @param options - Optional settings for prefix, tagKey, and separator
  * @returns An object containing:
  *   - Constructor functions for each tag
  *   - `schema`: Zod schema for validation
@@ -188,98 +250,124 @@ export type InferTaggedTypes<TSchema extends z.ZodDiscriminatedUnion<any, any>> 
  *
  * @example
  * ```ts
+ * // Basic usage
  * const RemoteData = taggedEnum({
  *   Loading: {},
  *   Success: { data: z.number() },
  *   Failure: { reason: z.string() }
  * });
  *
- * // Create instances
- * const loading = RemoteData.Loading();
- * const success = RemoteData.Success({ data: 42 });
- * const failure = RemoteData.Failure({ reason: "Not found" });
+ * // With prefix option
+ * const RemoteData = taggedEnum({
+ *   Loading: {},
+ *   Success: { data: z.number() }
+ * }, { prefix: 'remote-data' });
+ * // RemoteData.Loading() => { _tag: "remote-data/Loading" }
  *
- * // Exhaustive pattern matching
- * const message = RemoteData.matchAll(success, {
- *   Loading: () => "Loading...",
- *   Success: ({ data }) => `Got: ${data}`,
- *   Failure: ({ reason }) => `Error: ${reason}`
- * });
+ * // With custom tagKey
+ * const RemoteData = taggedEnum({
+ *   Loading: {}
+ * }, { tagKey: 'type' });
+ * // RemoteData.Loading() => { type: "Loading" }
  *
- * // Partial pattern matching
- * const result1 = RemoteData.matchSome(success, {
- *   Success: ({ data }) => `Got: ${data}`,
- *   _default: () => "Other case"
- * });
- *
- * const result2 = RemoteData.matchSome(success, {
- *   Success: ({ data }) => `Got: ${data}`
- * }); // Can return undefined for unhandled cases
- *
- * // Type narrowing
- * if (RemoteData.is("Success")(success)) {
- *   console.log(success.data); // TypeScript knows success.data exists
- * }
- *
- * // Validation
- * const external = { _tag: "Success", data: 42 };
- * const validated = RemoteData.schema.parse(external);
- *
- * // Type extraction
- * type SuccessType = typeof RemoteData.Types.Success;
- * type AllTypes = typeof RemoteData.Types.All;
+ * // With custom separator
+ * const RemoteData = taggedEnum({
+ *   Loading: {}
+ * }, { prefix: 'remote-data', separator: ':' });
+ * // RemoteData.Loading() => { _tag: "remote-data:Loading" }
  * ```
  */
-export function taggedEnum<TDefinition extends TaggedEnumDefinition>(definition: TDefinition) {
-  type Enum = InferTaggedEnum<TDefinition>;
+export function taggedEnum<
+  TDefinition extends TaggedEnumDefinition,
+  TTagKey extends string = '_tag',
+  TPrefix extends string | undefined = undefined,
+  TSeparator extends string = '/',
+>(
+  definition: TDefinition,
+  options?: {
+    prefix?: TPrefix;
+    tagKey?: TTagKey;
+    separator?: TSeparator;
+  }
+) {
+  const tag_key = (options?.tagKey ?? '_tag') as TTagKey;
+  const prefix = options?.prefix as TPrefix;
+  const separator = (options?.separator ?? '/') as TSeparator;
+
+  type Enum = InferTaggedEnum<TDefinition, TTagKey, TPrefix, TSeparator>;
+
+  const build_full_tag = (tag: string): string => {
+    if (prefix === undefined) {
+      return tag;
+    }
+
+    return `${prefix}${separator}${tag}`;
+  };
+
+  const extract_tag_name = (full_tag: string): string => {
+    if (prefix === undefined) {
+      return full_tag;
+    }
+
+    const prefix_with_separator = `${prefix}${separator}`;
+
+    if (full_tag.startsWith(prefix_with_separator)) {
+      return full_tag.slice(prefix_with_separator.length);
+    }
+
+    return full_tag;
+  };
 
   // Create Zod schemas for each case
   const schemas: Record<string, z.ZodObject<any>> = {};
 
   for (const [tag, fields] of Object.entries(definition)) {
-    let fieldSchema: z.ZodObject<any>;
+    const full_tag = build_full_tag(tag);
+    let field_schema: z.ZodObject<any>;
 
     if (isZodSchema(fields)) {
-      const baseSchema = z.object({ _tag: z.literal(tag) });
+      const base_schema = z.object({ [tag_key]: z.literal(full_tag) });
 
       if (fields instanceof z.ZodObject) {
-        fieldSchema = baseSchema.merge(fields);
+        field_schema = base_schema.merge(fields);
       } else {
-        fieldSchema = baseSchema;
+        field_schema = base_schema;
       }
     } else if (typeof fields === 'object' && fields !== null && Object.keys(fields).length > 0) {
-      const schemaFields: Record<string, z.ZodTypeAny> = {
-        _tag: z.literal(tag),
+      const schema_fields: Record<string, z.ZodTypeAny> = {
+        [tag_key]: z.literal(full_tag),
       };
 
       for (const [key, value] of Object.entries(fields)) {
-        schemaFields[key] = value as z.ZodTypeAny;
+        schema_fields[key] = value as z.ZodTypeAny;
       }
 
-      fieldSchema = z.object(schemaFields);
+      field_schema = z.object(schema_fields);
     } else {
-      fieldSchema = z.object({ _tag: z.literal(tag) });
+      field_schema = z.object({ [tag_key]: z.literal(full_tag) });
     }
 
-    schemas[tag] = fieldSchema;
+    schemas[tag] = field_schema;
   }
 
   // Create constructors
   const constructors: any = {};
 
   for (const [tag, fields] of Object.entries(definition)) {
-    const hasFields = !isZodSchema(fields) && typeof fields === 'object' && fields !== null && Object.keys(fields).length > 0;
+    const full_tag = build_full_tag(tag);
+    const has_fields =
+      !isZodSchema(fields) && typeof fields === 'object' && fields !== null && Object.keys(fields).length > 0;
 
-    if (hasFields) {
-      constructors[tag] = (payload: any) => ({ _tag: tag, ...payload });
+    if (has_fields) {
+      constructors[tag] = (payload: any) => ({ [tag_key]: full_tag, ...payload });
     } else {
-      constructors[tag] = () => ({ _tag: tag });
+      constructors[tag] = () => ({ [tag_key]: full_tag });
     }
   }
 
   // Create union schema
-  const schemaValues = Object.values(schemas);
-  const unionSchema = z.discriminatedUnion('_tag', schemaValues as any);
+  const schema_values = Object.values(schemas);
+  const union_schema = z.discriminatedUnion(tag_key, schema_values as any);
 
   /**
    * Exhaustive pattern matching helper for complete case analysis
@@ -299,13 +387,14 @@ export function taggedEnum<TDefinition extends TaggedEnumDefinition>(definition:
    * ```
    */
   function matchAll<TReturnType>(value: Enum, cases: MatchAllCases<TDefinition, TReturnType>): TReturnType {
-    const tag = value._tag as keyof TDefinition;
-    const handler = cases[tag] as any;
+    const full_tag = (value as any)[tag_key] as string;
+    const tag_name = extract_tag_name(full_tag);
+    const handler = cases[tag_name as keyof TDefinition] as any;
 
     const payload: any = {};
 
     for (const key in value) {
-      if (key !== '_tag') {
+      if (key !== (tag_key as string)) {
         payload[key] = value[key as keyof typeof value];
       }
     }
@@ -343,15 +432,19 @@ export function taggedEnum<TDefinition extends TaggedEnumDefinition>(definition:
    * });
    * ```
    */
-  function matchSome<TReturnType>(value: Enum, cases: MatchSomeCases<TDefinition, TReturnType>): TReturnType | undefined {
-    const tag = value._tag as keyof TDefinition;
-    const handler = cases[tag] as any;
+  function matchSome<TReturnType>(
+    value: Enum,
+    cases: MatchSomeCases<TDefinition, TReturnType>
+  ): TReturnType | undefined {
+    const full_tag = (value as any)[tag_key] as string;
+    const tag_name = extract_tag_name(full_tag);
+    const handler = cases[tag_name as keyof TDefinition] as any;
 
     if (handler !== undefined) {
       const payload: any = {};
 
       for (const key in value) {
-        if (key !== '_tag') {
+        if (key !== (tag_key as string)) {
           payload[key] = value[key as keyof typeof value];
         }
       }
@@ -383,17 +476,22 @@ export function taggedEnum<TDefinition extends TaggedEnumDefinition>(definition:
    * }
    * ```
    */
-  function is<TTag extends keyof TDefinition>(tag: TTag): (value: Enum) => value is Extract<Enum, { _tag: TTag }> {
-    return (value): value is Extract<Enum, { _tag: TTag }> => value._tag === tag;
+  function is<TTag extends keyof TDefinition & string>(
+    tag: TTag
+  ): (value: Enum) => value is Extract<Enum, { [K in TTagKey]: BuildTagValue<TTag, TPrefix, TSeparator> }> {
+    const full_tag = build_full_tag(tag);
+
+    return (value): value is Extract<Enum, { [K in TTagKey]: BuildTagValue<TTag, TPrefix, TSeparator> }> =>
+      (value as any)[tag_key] === full_tag;
   }
 
   return {
-    ...(constructors as Constructors<TDefinition>),
-    schema: unionSchema,
+    ...(constructors as Constructors<TDefinition, TTagKey, TPrefix, TSeparator>),
+    schema: union_schema,
     matchAll,
     matchSome,
     is,
-    Types: {} as InferTaggedTypes<typeof unionSchema>,
+    Types: {} as InferTaggedTypes<TDefinition, TTagKey, TPrefix, TSeparator>,
   };
 }
 

@@ -57,6 +57,7 @@ yarn add reducerify
   - [Type Guards](#type-guards)
   - [Runtime Validation](#runtime-validation)
 - [API Reference](#api-reference)
+- [Benchmarks](#benchmarks)
 
 ---
 
@@ -421,6 +422,7 @@ const ServerError = taggedEnum({
   ValidationError: { fields: z.array(z.string()) }
 });
 
+// Untyped error (flexible but less safe)
 const ApiResult = taggedEnum({
   Pending: {},
   Success: { data: z.any() },
@@ -444,6 +446,47 @@ const message = ApiResult.matchAll(result, {
       });
     }
     return "Unknown error";
+  }
+});
+```
+
+#### Strongly Typed Nested Unions
+
+For full type safety, use the schema from the nested tagged enum:
+
+```typescript
+const ServerError = taggedEnum({
+  NetworkError: { url: z.string() },
+  TimeoutError: { duration: z.number() },
+  ValidationError: { fields: z.array(z.string()) }
+});
+
+// Typed error using ServerError schema
+const ApiResult = taggedEnum({
+  Pending: {},
+  Success: { data: z.any() },
+  Failure: { error: ServerError.schema } // Fully typed!
+});
+
+type ApiResultType = typeof ApiResult.Types.All;
+type FailureType = typeof ApiResult.Types.Failure;
+// { _tag: "Failure", error: { _tag: "NetworkError", url: string } | { _tag: "TimeoutError", duration: number } | { _tag: "ValidationError", fields: string[] } }
+
+// Usage with full type inference
+const networkError = ServerError.NetworkError({ url: "/api/users" });
+const result = ApiResult.Failure({ error: networkError });
+
+// Pattern matching with type-safe error handling
+const message = ApiResult.matchAll(result, {
+  Pending: () => "Waiting...",
+  Success: ({ data }) => `Got data: ${JSON.stringify(data)}`,
+  Failure: ({ error }) => {
+    // error is fully typed as ServerError union - no type guard needed!
+    return ServerError.matchAll(error, {
+      NetworkError: ({ url }) => `Network error at ${url}`,
+      TimeoutError: ({ duration }) => `Timeout after ${duration}ms`,
+      ValidationError: ({ fields }) => `Validation error: ${fields.join(", ")}`
+    });
   }
 });
 ```
@@ -574,6 +617,53 @@ Creates a type guard for a specific tag.
 - `Constructors<TDefinition>`: Type for the constructor functions
 - `MatchAllCases<TDefinition, TReturnType>`: Type for exhaustive match cases
 - `MatchSomeCases<TDefinition, TReturnType>`: Type for partial match cases
+
+## Benchmarks
+
+The `taggedEnum` implementation is designed to be as fast as hand-written code while providing type safety, pattern matching, and runtime validation out of the box.
+
+### Results Summary
+
+| Operation                 | taggedEnum  | manual      | 🏆 Winner  | Slower by         |
+|---------------------------|-------------|-------------|------------|-------------------|
+| Object Creation (empty)   | 34.5M ops/s | 34.0M ops/s | taggedEnum | manual +1.7%      |
+| Object Creation (payload) | 15.2M ops/s | 13.8M ops/s | taggedEnum | manual +9.1%      |
+| matchAll (empty)          | 30.9M ops/s | 33.7M ops/s | manual     | taggedEnum +8.2%  |
+| matchAll (payload)        | 25.0M ops/s | 33.8M ops/s | manual     | taggedEnum +25.9% |
+| matchSome (matched)       | 28.0M ops/s | 33.1M ops/s | manual     | taggedEnum +15.3% |
+| matchSome (default)       | 33.9M ops/s | 33.7M ops/s | taggedEnum | manual +0.6%      |
+| is() (true)               | 33.9M ops/s | 34.0M ops/s | manual     | taggedEnum +0.2%  |
+| is() (false)              | 33.9M ops/s | 33.9M ops/s | taggedEnum | manual +0.0%      |
+| safeParse (valid)         | 17.7M ops/s | 15.9M ops/s | taggedEnum | manual +10.5%     |
+| safeParse (invalid)       | 0.6M ops/s  | 0.6M ops/s  | manual     | taggedEnum +0.0%  |
+
+**Score final: 🤝 Égalité (5-5)**
+
+======================================================================
+🖥️  ENVIRONNEMENT
+======================================================================
+📅 Date: 2025-11-21
+🥟 Bun: 1.3.2
+💻 Platform: Mac M4 Pro
+
+**Score final: 🤝 Égalité (5-5)**
+
+### Conclusions
+
+- **Object creation**: `taggedEnum` is as fast or faster than manual code
+- **Pattern matching**: Manual switch statements are slightly faster for `matchAll`, but `taggedEnum` provides exhaustiveness checking at compile time
+- **Type guards**: Identical performance
+- **Validation**: `taggedEnum` generates more optimized Zod schemas
+
+Overall, `taggedEnum` provides **comparable performance** to hand-written code while eliminating boilerplate and ensuring type safety.
+
+### Run Benchmarks Locally
+
+```bash
+bun run src/state/tagged-types.bench.ts
+```
+
+---
 
 ## License
 

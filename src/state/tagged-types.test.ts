@@ -644,4 +644,291 @@ describe('taggedEnum', () => {
       }
     });
   });
+
+  /**
+   * Test suite for taggedEnum options
+   * Demonstrates how to use prefix, tagKey, and separator options
+   */
+  describe('Options', () => {
+    describe('prefix option', () => {
+      test('should add prefix to tag values', () => {
+        const RemoteData = taggedEnum(
+          {
+            Loading: {},
+            Success: { data: z.number() },
+          },
+          { prefix: 'remote-data' }
+        );
+
+        const loading = RemoteData.Loading();
+        const success = RemoteData.Success({ data: 42 });
+
+        expect(loading).toEqual({ _tag: 'remote-data/Loading' });
+        expect(success).toEqual({ _tag: 'remote-data/Success', data: 42 });
+      });
+
+      test('should work with matchAll when using prefix', () => {
+        const RemoteData = taggedEnum(
+          {
+            Loading: {},
+            Success: { data: z.number() },
+            Failure: { reason: z.string() },
+          },
+          { prefix: 'remote-data' }
+        );
+
+        const loading = RemoteData.Loading();
+        const success = RemoteData.Success({ data: 42 });
+
+        const result_loading = RemoteData.matchAll(loading, {
+          Loading: () => 'loading',
+          Success: ({ data }) => `got: ${data}`,
+          Failure: ({ reason }) => `failed: ${reason}`,
+        });
+
+        const result_success = RemoteData.matchAll(success, {
+          Loading: () => 'loading',
+          Success: ({ data }) => `got: ${data}`,
+          Failure: ({ reason }) => `failed: ${reason}`,
+        });
+
+        expect(result_loading).toBe('loading');
+        expect(result_success).toBe('got: 42');
+      });
+
+      test('should work with matchSome when using prefix', () => {
+        const RemoteData = taggedEnum(
+          {
+            Loading: {},
+            Success: { data: z.number() },
+            Failure: { reason: z.string() },
+          },
+          { prefix: 'remote-data' }
+        );
+
+        const loading = RemoteData.Loading();
+        const success = RemoteData.Success({ data: 42 });
+
+        const result_loading = RemoteData.matchSome(loading, {
+          Success: ({ data }) => `got: ${data}`,
+          _default: () => 'other',
+        });
+
+        const result_success = RemoteData.matchSome(success, {
+          Success: ({ data }) => `got: ${data}`,
+        });
+
+        expect(result_loading).toBe('other');
+        expect(result_success).toBe('got: 42');
+      });
+
+      test('should work with is() type guard when using prefix', () => {
+        const RemoteData = taggedEnum(
+          {
+            Loading: {},
+            Success: { data: z.number() },
+          },
+          { prefix: 'remote-data' }
+        );
+
+        const success = RemoteData.Success({ data: 42 });
+
+        expect(RemoteData.is('Success')(success)).toBe(true);
+        expect(RemoteData.is('Loading')(success)).toBe(false);
+      });
+
+      test('should validate with prefixed schema', () => {
+        const RemoteData = taggedEnum(
+          {
+            Loading: {},
+            Success: { data: z.number() },
+          },
+          { prefix: 'remote-data' }
+        );
+
+        const external = { _tag: 'remote-data/Success', data: 42 };
+        const validated = RemoteData.schema.parse(external);
+
+        expect(validated).toEqual({ _tag: 'remote-data/Success', data: 42 });
+
+        // Should reject non-prefixed tags
+        const invalid = { _tag: 'Success', data: 42 };
+
+        expect(() => RemoteData.schema.parse(invalid)).toThrow();
+      });
+    });
+
+    describe('tagKey option', () => {
+      test('should use custom tag key', () => {
+        const RemoteData = taggedEnum(
+          {
+            Loading: {},
+            Success: { data: z.number() },
+          },
+          { tagKey: 'type' }
+        );
+
+        const loading = RemoteData.Loading();
+        const success = RemoteData.Success({ data: 42 });
+
+        expect(loading).toEqual({ type: 'Loading' });
+        expect(success).toEqual({ type: 'Success', data: 42 });
+      });
+
+      test('should work with matchAll using custom tagKey', () => {
+        const RemoteData = taggedEnum(
+          {
+            Loading: {},
+            Success: { data: z.number() },
+          },
+          { tagKey: 'type' }
+        );
+
+        const success = RemoteData.Success({ data: 42 });
+
+        const result = RemoteData.matchAll(success, {
+          Loading: () => 'loading',
+          Success: ({ data }) => `got: ${data}`,
+        });
+
+        expect(result).toBe('got: 42');
+      });
+
+      test('should work with is() using custom tagKey', () => {
+        const RemoteData = taggedEnum(
+          {
+            Loading: {},
+            Success: { data: z.number() },
+          },
+          { tagKey: 'type' }
+        );
+
+        const success = RemoteData.Success({ data: 42 });
+
+        expect(RemoteData.is('Success')(success)).toBe(true);
+        expect(RemoteData.is('Loading')(success)).toBe(false);
+      });
+
+      test('should validate schema with custom tagKey', () => {
+        const RemoteData = taggedEnum(
+          {
+            Success: { data: z.number() },
+          },
+          { tagKey: 'type' }
+        );
+
+        const external = { type: 'Success', data: 42 };
+        const validated = RemoteData.schema.parse(external);
+
+        expect(validated).toEqual({ type: 'Success', data: 42 });
+
+        // Should reject wrong key
+        const invalid = { _tag: 'Success', data: 42 };
+
+        expect(() => RemoteData.schema.parse(invalid)).toThrow();
+      });
+    });
+
+    describe('separator option', () => {
+      test('should use custom separator with prefix', () => {
+        const RemoteData = taggedEnum(
+          {
+            Loading: {},
+            Success: { data: z.number() },
+          },
+          { prefix: 'remote-data', separator: ':' }
+        );
+
+        const loading = RemoteData.Loading();
+        const success = RemoteData.Success({ data: 42 });
+
+        expect(loading).toEqual({ _tag: 'remote-data:Loading' });
+        expect(success).toEqual({ _tag: 'remote-data:Success', data: 42 });
+      });
+
+      test('should work with matchAll using custom separator', () => {
+        const RemoteData = taggedEnum(
+          {
+            Loading: {},
+            Success: { data: z.number() },
+          },
+          { prefix: 'remote-data', separator: '::' }
+        );
+
+        const success = RemoteData.Success({ data: 42 });
+
+        const result = RemoteData.matchAll(success, {
+          Loading: () => 'loading',
+          Success: ({ data }) => `got: ${data}`,
+        });
+
+        expect(result).toBe('got: 42');
+      });
+    });
+
+    describe('combined options', () => {
+      test('should work with all options combined', () => {
+        const RemoteData = taggedEnum(
+          {
+            Loading: {},
+            Success: { data: z.number() },
+            Failure: { reason: z.string() },
+          },
+          { prefix: 'api', tagKey: 'kind', separator: '.' }
+        );
+
+        const loading = RemoteData.Loading();
+        const success = RemoteData.Success({ data: 42 });
+        const failure = RemoteData.Failure({ reason: 'not found' });
+
+        expect(loading).toEqual({ kind: 'api.Loading' });
+        expect(success).toEqual({ kind: 'api.Success', data: 42 });
+        expect(failure).toEqual({ kind: 'api.Failure', reason: 'not found' });
+
+        // Test matchAll
+        const result = RemoteData.matchAll(success, {
+          Loading: () => 'loading',
+          Success: ({ data }) => `got: ${data}`,
+          Failure: ({ reason }) => `failed: ${reason}`,
+        });
+
+        expect(result).toBe('got: 42');
+
+        // Test is()
+        expect(RemoteData.is('Success')(success)).toBe(true);
+        expect(RemoteData.is('Loading')(success)).toBe(false);
+
+        // Test schema validation
+        const external = { kind: 'api.Success', data: 42 };
+        const validated = RemoteData.schema.parse(external);
+
+        expect(validated).toEqual({ kind: 'api.Success', data: 42 });
+      });
+
+      test('should provide correct Types with options', () => {
+        const RemoteData = taggedEnum(
+          {
+            Loading: {},
+            Success: { data: z.number() },
+          },
+          { prefix: 'remote-data' }
+        );
+
+        type LoadingType = (typeof RemoteData.Types)['Loading'];
+        type SuccessType = (typeof RemoteData.Types)['Success'];
+        type AllTypes = (typeof RemoteData.Types)['All'];
+
+        const loading: LoadingType = RemoteData.Loading();
+        const success: SuccessType = RemoteData.Success({ data: 42 });
+
+        expect(loading._tag).toBe('remote-data/Loading');
+        expect(success._tag).toBe('remote-data/Success');
+
+        const accept_all = (value: AllTypes) => value._tag;
+
+        expect(accept_all(loading)).toBe('remote-data/Loading');
+        expect(accept_all(success)).toBe('remote-data/Success');
+      });
+    });
+  });
 });
