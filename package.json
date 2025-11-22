@@ -1,6 +1,6 @@
 {
   "name": "reducerify",
-  "version": "1.2.1",
+  "version": "1.3.0",
   "license": "MIT",
   "description": "Type-safe reducers and tagged unions for TypeScript - simplify state management with automatic action creators and pattern matching",
   "homepage": "https://github.com/wooandoo/reducerify#readme",
@@ -15,19 +15,33 @@
   "main": "dist/index.js",
   "module": "dist/index.js",
   "devDependencies": {
-    "@biomejs/biome": "2.3.6",
+    "@biomejs/biome": "2.3.7",
     "rimraf": "^6.0.1",
     "tinybench": "^5.1.0",
     "tsdown": "^0.16.6",
     "typescript": "^5.9.3",
-    "vitest": "^4.0.12",
+    "vitest": "^4.0.13",
     "xportify": "^1.0.7"
   },
   "peerDependencies": {
     "immer": "^10.1.1",
+    "jotai": "^2.15.1",
     "zod": "^4.1.12"
   },
-  "exports": {},
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./jotai/atomWithReducerify": {
+      "types": "./dist/jotai/atomWithReducerify.d.ts",
+      "import": "./dist/jotai/atomWithReducerify.js"
+    },
+    "./reducer/immer": {
+      "types": "./dist/reducer/immer.d.ts",
+      "import": "./dist/reducer/immer.js"
+    }
+  },
   "engines": {
     "node": ">=18"
   },
@@ -46,10 +60,14 @@
     "pattern-matching",
     "zod",
     "type-safe",
-    "sum-types"
+    "sum-types",
+    "jotai"
   ],
   "peerDependenciesMeta": {
     "immer": {
+      "optional": true
+    },
+    "jotai": {
       "optional": true
     }
   },
@@ -58,7 +76,7 @@
     "bench": "bun run src/state/tagged-types.bench.ts",
     "clean": "rimraf dist",
     "build": "bun run clean && bun run build:compile && bun run build:xportify",
-    "build:compile": "tsdown src/index.ts src/reducer/immer.ts",
+    "build:compile": "tsdown",
     "build:xportify": "xportify --project . --dist ./dist --write",
     "lint": "biome check .",
     "ci": "bun run build && bun run lint && bun run test",

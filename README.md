@@ -41,6 +41,11 @@ yarn add reducerify
   pnpm install immer
   ```
 
+- **Jotai** (optional): For Jotai atom integration
+  ```bash
+  pnpm install jotai
+  ```
+
 - **Zod** (optional): Required for tagged unions with runtime validation
   ```bash
   pnpm install zod
@@ -51,6 +56,7 @@ yarn add reducerify
 - [Reducers](#reducers)
   - [Pure Functional Way](#pure-functional-way)
   - [Immer Way](#immer-way)
+  - [Jotai Integration](#jotai-integration)
 - [Tagged Unions](#tagged-unions)
   - [Basic Usage](#basic-usage)
   - [Pattern Matching](#pattern-matching)
@@ -155,6 +161,74 @@ const { reducer, actions } = forState<TodoState>().createImmerReducer({
   },
 });
 ```
+
+### Jotai Integration
+
+Reducerify provides seamless integration with Jotai through the `atomWithReducerify` utility. This allows you to use reducerify's type-safe reducers within Jotai's atomic state management system.
+
+#### 1. Create a reducer
+
+```typescript
+import { forState, type ActionWithPayload } from "reducerify";
+
+type CounterState = {
+  count: number;
+};
+
+const { reducer, actions } = forState<CounterState>().createReducer({
+  increment: (state) => ({
+    ...state,
+    count: state.count + 1,
+  }),
+  decrement: (state) => ({
+    ...state,
+    count: state.count - 1,
+  }),
+  add: (state, action: ActionWithPayload<{ value: number }>) => ({
+    ...state,
+    count: state.count + action.payload.value,
+  }),
+});
+```
+
+#### 2. Create a Jotai atom from the reducer
+
+```typescript
+import { atomWithReducerify } from "reducerify/jotai/atomWithReducerify";
+
+const counterAtom = atomWithReducerify(
+  { count: 0 }, // Initial state
+  reducer,
+  'counterAtom' // Optional debug label for Jotai DevTools
+);
+```
+
+#### 3. Use the atom in your React components
+
+```typescript
+import { useAtom } from "jotai";
+
+function Counter() {
+  const [state, dispatch] = useAtom(counterAtom);
+
+  return (
+    <div>
+      <p>Count: {state.count}</p>
+      <button onClick={() => dispatch(actions.increment())}>+1</button>
+      <button onClick={() => dispatch(actions.decrement())}>-1</button>
+      <button onClick={() => dispatch(actions.add({ value: 10 }))}>+10</button>
+    </div>
+  );
+}
+```
+
+#### Why use atomWithReducerify?
+
+- **Type safety**: Full TypeScript inference for state and actions
+- **Action creators**: Use reducerify's automatically generated action creators
+- **Jotai benefits**: Leverage Jotai's atomic state management and React 18+ features
+- **DevTools support**: Optional debug labels for better debugging experience
+- **Composability**: Combine with other Jotai atoms and utilities
 
 ---
 
@@ -520,6 +594,9 @@ src/
 - **Immer export** (`reducerify/reducer/immer`):
   - Immer-specific: `forState` with `createImmerReducer`
 
+- **Jotai export** (`reducerify/jotai/atomWithReducerify`):
+  - Jotai integration: `atomWithReducerify`, `ActionsToActionType`
+
 ---
 
 ## API Reference
@@ -554,11 +631,23 @@ Creates a reducer using Immer for mutable-style updates (available from `reducer
 - `reducer`: The reducer function that handles state updates
 - `actions`: Automatically generated action creators
 
+#### `atomWithReducerify(initialState, reducer, debugLabel?)`
+
+Creates a Jotai atom from a reducerify reducer (available from `reducerify/jotai/atomWithReducerify`).
+
+**Parameters:**
+- `initialState`: The initial state value
+- `reducer`: A reducer function created with `createReducer`
+- `debugLabel` (optional): Debug label for Jotai DevTools
+
+**Returns:** A writable Jotai atom that can be used with `useAtom`
+
 #### Types
 
 - `ActionWithoutPayload`: Action without additional data
 - `ActionWithPayload<TPayload>`: Action with typed payload data
 - `ReducerHandlers<TState>`: Map of action types to handler functions
+- `ActionsToActionType<Actions>`: Type helper to extract the union action type from action creators
 
 ### Tagged Union API
 
